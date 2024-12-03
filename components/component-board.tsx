@@ -44,10 +44,11 @@ export default function ComponentBoard() {
 
     fetchComponents();
 
-    // Set up realtime subscription
+    // Set up realtime subscription for all document changes
     const unsubscribe = client?.subscribe(
       [`databases.${COMPONENT_DATABASE_ID}.collections.${COMPONENT_COLLECTION_ID}.documents`],
       (response) => {
+        // Immediately fetch updated data when any change occurs
         fetchComponents();
       }
     );

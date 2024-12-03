@@ -19,15 +19,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from 'react';
+import { UpdateResourceDialog } from './update-resource-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ResourceForm } from './resource-form';
 
 interface ResourceCardProps {
   resource: Resource;
   onDelete?: () => void;
+  onUpdate?: () => Promise<void>;
 }
 
-export function ResourceCard({ resource, onDelete }: ResourceCardProps) {
+export function ResourceCard({ resource, onUpdate, onDelete }: ResourceCardProps) {
   const { toast } = useToast();
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDownload = async () => {
@@ -95,14 +100,20 @@ export function ResourceCard({ resource, onDelete }: ResourceCardProps) {
               <FileText className="h-5 w-5 text-blue-500" />
               <h3 className="font-semibold">{resource.name}</h3>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-red-500 hover:text-red-700 hover:bg-red-100"
-              onClick={() => setShowDeleteAlert(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <UpdateResourceDialog
+                resource={resource}
+                onUpdate={onUpdate}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                onClick={() => setShowDeleteAlert(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -164,6 +175,21 @@ export function ResourceCard({ resource, onDelete }: ResourceCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Resource</DialogTitle>
+          </DialogHeader>
+          <ResourceForm
+            initialData={resource}
+            onSuccess={async (updatedResource) => {
+              setShowUpdateDialog(false);
+              if (onUpdate) await onUpdate();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 } 

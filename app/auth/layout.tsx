@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign In - Collabrixo Team',
+  title: 'Sign In - Team',
   description: 'Sign in to access your team workspace',
 };
 

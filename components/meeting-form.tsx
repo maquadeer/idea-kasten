@@ -87,13 +87,29 @@ export function MeetingForm({ initialData, onSuccess }: MeetingFormProps) {
       };
 
       if (initialData?.$id) {
-        await databases.updateDocument(
-          MEETING_DATABASE_ID,
-          MEETING_COLLECTION_ID,
-          initialData.$id,
-          meetingData
-        );
-        toast({ title: 'Meeting updated' });
+        const updatedFields: Partial<typeof meetingData> = {};
+        
+        if (values.date.toISOString() !== new Date(initialData.date).toISOString()) {
+          updatedFields.date = values.date.toISOString();
+        }
+        if (values.agenda !== initialData.agenda) updatedFields.agenda = values.agenda;
+        if (values.meetLink !== initialData.meetLink) updatedFields.meetLink = values.meetLink;
+        if (values.postMeetingNotes !== initialData.postMeetingNotes) {
+          updatedFields.postMeetingNotes = values.postMeetingNotes || '';
+        }
+        if (attachmentId !== initialData.attachments) updatedFields.attachments = attachmentId || '';
+        
+        if (Object.keys(updatedFields).length > 0) {
+          updatedFields.updatedAt = new Date().toISOString();
+          
+          await databases.updateDocument(
+            MEETING_DATABASE_ID,
+            MEETING_COLLECTION_ID,
+            initialData.$id,
+            updatedFields
+          );
+          toast({ title: 'Meeting updated' });
+        }
       } else {
         await databases.createDocument(
           MEETING_DATABASE_ID,

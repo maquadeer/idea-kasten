@@ -1,6 +1,6 @@
 'use client';
 
-import { Component } from '@/lib/types';
+import { Resource } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -8,20 +8,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ComponentForm } from './component-form';
+import { ResourceForm } from './resource-form';
 import { Button } from './ui/button';
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 
-interface UpdateComponentDialogProps {
-  component: Component;
+interface UpdateResourceDialogProps {
+  resource: Resource;
   onUpdate?: () => Promise<void>;
 }
 
-export function UpdateComponentDialog({ component, onUpdate }: UpdateComponentDialogProps) {
+export function UpdateResourceDialog({ resource, onUpdate }: UpdateResourceDialogProps) {
   const [open, setOpen] = useState(false);
 
-  const handleSuccess = async (updatedComponent: Component) => {
+  const handleSuccess = async (updatedResource: Resource) => {
     setOpen(false);
     if (onUpdate) {
       await onUpdate();
@@ -37,13 +37,13 @@ export function UpdateComponentDialog({ component, onUpdate }: UpdateComponentDi
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Update Component</DialogTitle>
+          <DialogTitle>Update Resource</DialogTitle>
         </DialogHeader>
-        <ComponentForm
-          initialData={component}
+        <ResourceForm
+          initialData={resource}
           onSuccess={handleSuccess}
         />
       </DialogContent>
     </Dialog>
   );
-}
+} 

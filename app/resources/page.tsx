@@ -1,37 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { ResourceForm } from '@/components/resource-form';
+import { useEffect, useState } from 'react';
+import { CreateResourceButton } from '@/components/create-resource-button';
 import { ResourceCard } from '@/components/resource-card';
-import { databases, COMPONENT_DATABASE_ID, RESOURCE_COLLECTION_ID } from '@/lib/appwrite';
+import { client, databases, COMPONENT_DATABASE_ID, RESOURCE_COLLECTION_ID } from '@/lib/appwrite';
 import { Resource } from '@/lib/types';
 import { Query } from 'appwrite';
-import { config } from '@/lib/config';
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchResources = async () => {
     try {
       if (!databases) {
-        console.error('Databases client not initialized');
-        return;
-      }
-
-      if (!COMPONENT_DATABASE_ID || !RESOURCE_COLLECTION_ID) {
-        console.error('Missing required configuration');
-        return;
+        throw new Error('Database service not initialized');
       }
 
       const response = await databases.listDocuments(
@@ -39,14 +23,12 @@ export default function ResourcesPage() {
         RESOURCE_COLLECTION_ID,
         [Query.orderDesc('createdAt')]
       );
-      
+
       setResources(response.documents as unknown as Resource[]);
+      setError(null);
     } catch (error) {
-      console.error('Error fetching resources');
-      // Log error type without sensitive data
-      if (error instanceof Error) {
-        console.error('Error type:', error.name);
-      }
+      console.error('Error fetching resources:', error);
+      setError('Failed to load resources. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -54,38 +36,60 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     fetchResources();
+
+    // Set up realtime subscription for all document changes
+    const unsubscribe = client?.subscribe(
+      [`databases.${COMPONENT_DATABASE_ID}.collections.${RESOURCE_COLLECTION_ID}.documents`],
+      (response) => {
+        // Immediately fetch updated data when any change occurs
+        fetchResources();
+      }
+    );
+
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Resources</h1>
+          <CreateResourceButton onSuccess={fetchResources} />
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current mx-auto" />
+          <p className="mt-2 text-muted-foreground">Loading resources...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Resources</h1>
+          <CreateResourceButton onSuccess={fetchResources} />
+        </div>
+        <div className="text-center py-8 text-red-500">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-6 sm:py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold">Shared Resources</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Resource
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Resource</DialogTitle>
-            </DialogHeader>
-            <ResourceForm
-              onSuccess={() => {
-                setIsDialogOpen(false);
-                fetchResources();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Resources</h1>
+        <CreateResourceButton onSuccess={fetchResources} />
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">Loading resources...</div>
-      ) : resources.length === 0 ? (
+      {resources.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          No resources shared yet.
+          No resources uploaded yet.
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -93,6 +97,7 @@ export default function ResourcesPage() {
             <ResourceCard
               key={resource.$id}
               resource={resource}
+              onUpdate={fetchResources}
               onDelete={fetchResources}
             />
           ))}

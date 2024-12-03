@@ -8,7 +8,7 @@ import { UpdateComponentDialog } from './update-component-dialog';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { storage, databases, STORAGE_BUCKET_ID, COMPONENT_DATABASE_ID, COMPONENT_COLLECTION_ID } from '@/lib/appwrite';
-import { Trash2, Maximize2 } from 'lucide-react';
+import { Trash2, Maximize2, Pencil } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
+import { ComponentForm } from './component-form';
 
 interface ComponentCardProps {
   component: Component;
@@ -40,6 +41,7 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   
   const difficultyColors = {
     easy: 'bg-green-500',
@@ -111,17 +113,30 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
                 {component.difficulty}
               </Badge>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-red-500 hover:text-red-700 hover:bg-red-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDeleteAlert(true);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-accent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowUpdateDialog(true);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteAlert(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -245,6 +260,21 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Component</DialogTitle>
+          </DialogHeader>
+          <ComponentForm
+            initialData={component}
+            onSuccess={async (updatedComponent: Component) => {
+              setShowUpdateDialog(false);
+              if (onUpdate) await onUpdate();
+            }}
+          />
         </DialogContent>
       </Dialog>
     </>

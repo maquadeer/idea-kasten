@@ -31,7 +31,7 @@ const formSchema = z.object({
 
 interface ComponentFormProps {
   initialData?: Component;
-  onSuccess?: () => void;
+  onSuccess?: (updatedComponent: Component) => void;
 }
 
 // Generate a short unique ID (6 characters)
@@ -62,11 +62,27 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
       }
 
       setIsLoading(true);
-      let imageId = initialData?.inspirationImage;
+      let imageId: string | undefined = initialData?.inspirationImage;
 
+      // Handle image upload separately
       if (values.inspirationImage?.[0]) {
         const file = values.inspirationImage[0];
         try {
+          // Validate file before upload
+          if (!(file instanceof File)) {
+            throw new Error('Invalid file type');
+          }
+
+          // Check file size (e.g., 10MB limit)
+          if (file.size > 10 * 1024 * 1024) {
+            toast({
+              title: 'Error',
+              description: 'File size must be less than 10MB',
+              variant: 'destructive',
+            });
+            return;
+          }
+
           const uploadedFile = await storage.createFile(
             STORAGE_BUCKET_ID,
             ID.unique(),
@@ -75,47 +91,82 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
           );
           imageId = uploadedFile.$id;
         } catch (uploadError) {
-          console.error('Error uploading file');
-          throw uploadError;
+          console.error('Error uploading file:', uploadError);
+          // Keep existing image and show error
+          imageId = initialData?.inspirationImage;
+          if (uploadError instanceof Error) {
+            toast({
+              title: 'Error uploading image',
+              description: uploadError.message,
+              variant: 'destructive',
+            });
+          }
         }
       }
 
-      const componentData = {
-        name: values.name,
-        description: values.description,
-        assignee: values.assignee,
-        difficulty: values.difficulty as Difficulty,
-        status: values.status as Status,
-        inspirationImage: imageId,
-        createdAt: initialData?.createdAt ? new Date(initialData.createdAt).toISOString() : new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      let updatedComponent: Component | null = null;
 
       if (initialData?.$id) {
-        await databases.updateDocument(
-          COMPONENT_DATABASE_ID,
-          COMPONENT_COLLECTION_ID,
-          initialData.$id,
-          componentData
-        );
-        toast({ title: 'Component updated' });
+        // For updates, only include fields that have actually changed
+        const updatedFields: Partial<Component> = {};
+        
+        // Compare each field with initial data
+        if (values.name !== initialData.name) updatedFields.name = values.name;
+        if (values.description !== initialData.description) updatedFields.description = values.description;
+        if (values.assignee !== initialData.assignee) updatedFields.assignee = values.assignee;
+        if (values.difficulty !== initialData.difficulty) updatedFields.difficulty = values.difficulty as Difficulty;
+        if (values.status !== initialData.status) updatedFields.status = values.status as Status;
+        
+        // Only include image if it changed
+        if (imageId !== initialData.inspirationImage) {
+          updatedFields.inspirationImage = imageId;
+        }
+        
+        // Only update if there are changes
+        if (Object.keys(updatedFields).length > 0) {
+          updatedFields.updatedAt = new Date();
+          
+          updatedComponent = await databases.updateDocument(
+            COMPONENT_DATABASE_ID,
+            COMPONENT_COLLECTION_ID,
+            initialData.$id,
+            updatedFields
+          ) as unknown as Component;
+
+          toast({ 
+            title: 'Component updated',
+            description: Object.keys(updatedFields).join(', ') + ' updated successfully'
+          });
+        }
       } else {
-        await databases.createDocument(
+        // For new components, include all fields
+        const newComponent: Component = {
+          name: values.name,
+          description: values.description,
+          assignee: values.assignee,
+          difficulty: values.difficulty as Difficulty,
+          status: values.status as Status,
+          inspirationImage: imageId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        updatedComponent = await databases.createDocument(
           COMPONENT_DATABASE_ID,
           COMPONENT_COLLECTION_ID,
           ID.unique(),
-          componentData,
+          newComponent,
           [Permission.read(Role.any()), Permission.update(Role.any())]
-        );
+        ) as unknown as Component;
         toast({ title: 'Component created' });
       }
 
       form.reset();
-      if (onSuccess) {
-        onSuccess();
+      if (onSuccess && updatedComponent) {
+        onSuccess(updatedComponent);
       }
     } catch (error) {
-      console.error('Error saving component');
+      console.error('Error saving component:', error);
       toast({
         title: 'Error',
         description: 'Failed to save component. Please try again.',
