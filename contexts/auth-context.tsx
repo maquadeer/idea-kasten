@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { account } from '@/lib/appwrite';
-import { Models } from 'appwrite';
+import { Models, ID } from 'appwrite';
 import { config } from '@/lib/config';
 
 interface AuthContextType {
