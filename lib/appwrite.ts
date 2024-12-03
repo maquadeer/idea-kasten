@@ -7,6 +7,8 @@ let databases: Databases;
 let storage: Storage;
 
 if (typeof window !== 'undefined') {
+  console.log('Initializing Appwrite client');
+
   client = new Client();
   client
     .setEndpoint(config.appwrite.endpoint)

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { databases, storage, MEETING_DATABASE_ID, RESOURCE_COLLECTION_ID, STORAGE_BUCKET_ID } from '@/lib/appwrite';
+import { databases, storage, COMPONENT_DATABASE_ID, RESOURCE_COLLECTION_ID, STORAGE_BUCKET_ID } from '@/lib/appwrite';
 import { ID, Permission, Role } from 'appwrite';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -49,38 +49,17 @@ export function ResourceForm({ onSuccess }: ResourceFormProps) {
         throw new Error('Storage or database service not initialized');
       }
 
-      console.log('Starting file upload:', {
-        bucketId: STORAGE_BUCKET_ID,
-        fileName: file.name,
-        fileSize: file.size,
-      });
-
       // Upload file
       const uploadedFile = await storage.createFile(
         STORAGE_BUCKET_ID,
         ID.unique(),
         file,
-        [
-          Permission.read(Role.any()),
-          Permission.write(Role.any()),
-          Permission.update(Role.any()),
-          Permission.delete(Role.any())
-        ]
-      ).catch(error => {
-        console.error('Storage error details:', {
-          message: error.message,
-          code: error.code,
-          type: error.type,
-          response: error.response
-        });
-        throw error;
-      });
-
-      console.log('File uploaded successfully:', uploadedFile.$id);
+        [Permission.read(Role.any())]
+      );
 
       // Create resource document
-      const resourceDoc = await databases.createDocument(
-        MEETING_DATABASE_ID,
+      await databases.createDocument(
+        COMPONENT_DATABASE_ID,
         RESOURCE_COLLECTION_ID,
         ID.unique(),
         {
@@ -93,23 +72,8 @@ export function ResourceForm({ onSuccess }: ResourceFormProps) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
-        [
-          Permission.read(Role.any()),
-          Permission.write(Role.any()),
-          Permission.update(Role.any()),
-          Permission.delete(Role.any())
-        ]
-      ).catch(error => {
-        console.error('Database error details:', {
-          message: error.message,
-          code: error.code,
-          type: error.type,
-          response: error.response
-        });
-        throw error;
-      });
-
-      console.log('Resource document created:', resourceDoc.$id);
+        [Permission.read(Role.any())]
+      );
 
       toast({ title: 'Resource uploaded successfully' });
       setName('');
@@ -119,10 +83,10 @@ export function ResourceForm({ onSuccess }: ResourceFormProps) {
         onSuccess();
       }
     } catch (error) {
-      console.error('Error uploading resource:', error);
+      console.error('Error uploading resource');
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to upload resource',
+        description: 'Failed to upload resource. Please try again.',
         variant: 'destructive',
       });
     } finally {

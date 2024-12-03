@@ -12,9 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { ResourceForm } from '@/components/resource-form';
 import { ResourceCard } from '@/components/resource-card';
-import { databases, MEETING_DATABASE_ID, RESOURCE_COLLECTION_ID } from '@/lib/appwrite';
+import { databases, COMPONENT_DATABASE_ID, RESOURCE_COLLECTION_ID } from '@/lib/appwrite';
 import { Resource } from '@/lib/types';
 import { Query } from 'appwrite';
+import { config } from '@/lib/config';
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -23,16 +24,29 @@ export default function ResourcesPage() {
 
   const fetchResources = async () => {
     try {
-      if (!databases) return;
+      if (!databases) {
+        console.error('Databases client not initialized');
+        return;
+      }
+
+      if (!COMPONENT_DATABASE_ID || !RESOURCE_COLLECTION_ID) {
+        console.error('Missing required configuration');
+        return;
+      }
 
       const response = await databases.listDocuments(
-        MEETING_DATABASE_ID,
+        COMPONENT_DATABASE_ID,
         RESOURCE_COLLECTION_ID,
         [Query.orderDesc('createdAt')]
       );
+      
       setResources(response.documents as unknown as Resource[]);
     } catch (error) {
-      console.error('Error fetching resources:', error);
+      console.error('Error fetching resources');
+      // Log error type without sensitive data
+      if (error instanceof Error) {
+        console.error('Error type:', error.name);
+      }
     } finally {
       setLoading(false);
     }

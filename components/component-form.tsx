@@ -55,30 +55,17 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    console.log('Form values:', values);
-
     try {
       if (!client || !databases || !storage) {
-        console.error('Services not initialized:', {
-          client: !!client,
-          databases: !!databases,
-          storage: !!storage
-        });
-        throw new Error('Appwrite services not initialized');
+        console.error('Services not initialized');
+        return;
       }
 
-      let imageId: string | null = null;
+      setIsLoading(true);
+      let imageId = initialData?.inspirationImage;
 
-      // Handle image upload
       if (values.inspirationImage?.[0]) {
         const file = values.inspirationImage[0];
-        console.log('Attempting to upload file:', {
-          name: file.name,
-          size: file.size,
-          type: file.type
-        });
-
         try {
           const uploadedFile = await storage.createFile(
             STORAGE_BUCKET_ID,
@@ -86,17 +73,10 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
             file,
             [Permission.read(Role.any())]
           );
-          console.log('File uploaded:', uploadedFile);
           imageId = uploadedFile.$id;
-          console.log('File ID:', imageId);
         } catch (uploadError) {
-          console.error('Upload error details:', uploadError);
-          toast({
-            title: 'Image upload failed',
-            description: 'Will create component without image',
-            variant: 'destructive',
-          });
-          imageId = null;
+          console.error('Error uploading file');
+          throw uploadError;
         }
       }
 
@@ -111,26 +91,22 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
         updatedAt: new Date().toISOString(),
       };
 
-      console.log('Attempting to save component:', componentData);
-
       if (initialData?.$id) {
-        const updated = await databases.updateDocument(
+        await databases.updateDocument(
           COMPONENT_DATABASE_ID,
           COMPONENT_COLLECTION_ID,
           initialData.$id,
           componentData
         );
-        console.log('Component updated:', updated);
         toast({ title: 'Component updated' });
       } else {
-        const created = await databases.createDocument(
+        await databases.createDocument(
           COMPONENT_DATABASE_ID,
           COMPONENT_COLLECTION_ID,
           ID.unique(),
           componentData,
           [Permission.read(Role.any()), Permission.update(Role.any())]
         );
-        console.log('Component created:', created);
         toast({ title: 'Component created' });
       }
 
@@ -139,10 +115,10 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
         onSuccess();
       }
     } catch (error) {
-      console.error('Detailed error:', error);
+      console.error('Error saving component');
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to save component',
+        description: 'Failed to save component. Please try again.',
         variant: 'destructive',
       });
     } finally {

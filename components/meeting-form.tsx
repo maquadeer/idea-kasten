@@ -52,30 +52,27 @@ export function MeetingForm({ initialData, onSuccess }: MeetingFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    console.log('Form values:', values);
 
     try {
       if (!databases) {
         throw new Error('Database service not initialized');
       }
 
-      let attachmentIds: string[] = [];
+      let attachmentId = initialData?.attachments;
 
-      // Handle file uploads if any
-      if (values.attachments?.[0] && storage) {
-        const files = Array.from(values.attachments) as File[];
-        for (const file of files) {
-          try {
-            const uploadedFile = await storage.createFile(
-              STORAGE_BUCKET_ID,
-              ID.unique(),
-              file,
-              [Permission.read(Role.any())]
-            );
-            attachmentIds.push(uploadedFile.$id);
-          } catch (error) {
-            console.error('File upload error:', error);
-          }
+      if (values.attachments?.[0]) {
+        const file = values.attachments[0];
+        try {
+          const uploadedFile = await storage.createFile(
+            STORAGE_BUCKET_ID,
+            ID.unique(),
+            file,
+            [Permission.read(Role.any())]
+          );
+          attachmentId = uploadedFile.$id;
+        } catch (error) {
+          console.error('Error uploading file');
+          throw error;
         }
       }
 
@@ -84,8 +81,8 @@ export function MeetingForm({ initialData, onSuccess }: MeetingFormProps) {
         agenda: values.agenda,
         meetLink: values.meetLink,
         postMeetingNotes: values.postMeetingNotes || '',
-        attachments: attachmentIds.join(','),
-        createdAt: initialData?.createdAt || new Date().toISOString(),
+        attachments: attachmentId || '',
+        createdAt: initialData?.createdAt ? new Date(initialData.createdAt).toISOString() : new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
@@ -103,7 +100,7 @@ export function MeetingForm({ initialData, onSuccess }: MeetingFormProps) {
           MEETING_COLLECTION_ID,
           ID.unique(),
           meetingData,
-          [Permission.read(Role.any()), Permission.update(Role.any())]
+          [Permission.read(Role.any())]
         );
         toast({ title: 'Meeting created' });
       }
@@ -113,10 +110,10 @@ export function MeetingForm({ initialData, onSuccess }: MeetingFormProps) {
         onSuccess();
       }
     } catch (error) {
-      console.error('Error saving meeting:', error);
+      console.error('Error saving meeting');
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to save meeting',
+        description: 'Failed to save meeting. Please try again.',
         variant: 'destructive',
       });
     } finally {

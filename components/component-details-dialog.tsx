@@ -34,11 +34,10 @@ export function ComponentDetailsDialog({ component }: ComponentDetailsDialogProp
     if (component.inspirationImage && storage) {
       try {
         const url = storage.getFileView(STORAGE_BUCKET_ID, component.inspirationImage).href;
-        console.log('Setting details dialog image URL:', url);
         setImageUrl(url);
         setImageError(false);
       } catch (error) {
-        console.error('Error getting file view URL in dialog:', error);
+        console.error('Error loading image');
         setImageError(true);
       }
     }
