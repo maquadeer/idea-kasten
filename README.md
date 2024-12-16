@@ -14,8 +14,8 @@
 - Schedule and track team meetings.
 - Maintain meeting agendas and notes.
 
-### 3. **Shared Resources**
-- Add, manage, and share project-related resources.
+### 3. **Shared Files**
+- Add, manage, and share project-related files.
 - Centralized repository for team assets.
 
 ### 4. **Timeline Visualization**
