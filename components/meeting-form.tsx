@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 
 const formSchema = z.object({
   date: z.date(),
-  agenda: z.string().min(10),
+  agenda: z.string(),
   meetLink: z.string().url(),
   postMeetingNotes: z.string().optional(),
   attachments: z.any().optional(),

@@ -22,7 +22,7 @@ import { useState } from 'react';
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
-  description: z.string().min(10),
+  description: z.string(),
   assignee: z.string().min(2),
   difficulty: z.enum(['easy', 'medium', 'hard'] as const),
   status: z.enum(['todo', 'inprogress', 'done'] as const),
