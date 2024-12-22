@@ -82,27 +82,21 @@ export default function ResourcesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Resources</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Resources</h1>
         <CreateResourceButton onSuccess={fetchResources} />
       </div>
 
-      {resources.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No resources uploaded yet.
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {resources.map((resource) => (
-            <ResourceCard
-              key={resource.$id}
-              resource={resource}
-              onUpdate={fetchResources}
-              onDelete={fetchResources}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {resources.map((resource) => (
+          <ResourceCard
+            key={resource.$id}
+            resource={resource}
+            onUpdate={fetchResources}
+            onDelete={fetchResources}
+          />
+        ))}
+      </div>
     </div>
   );
 } 

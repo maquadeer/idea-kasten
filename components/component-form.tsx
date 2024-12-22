@@ -65,42 +65,33 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
       let imageId: string | undefined = initialData?.inspirationImage;
 
       // Handle image upload separately
-      if (values.inspirationImage?.[0]) {
-        const file = values.inspirationImage[0];
+      if (values.inspirationImage instanceof File) {
         try {
-          // Validate file before upload
-          if (!(file instanceof File)) {
-            throw new Error('Invalid file type');
-          }
-
-          // Check file size (e.g., 10MB limit)
-          if (file.size > 10 * 1024 * 1024) {
-            toast({
-              title: 'Error',
-              description: 'File size must be less than 10MB',
-              variant: 'destructive',
-            });
-            return;
-          }
-
           const uploadedFile = await storage.createFile(
             STORAGE_BUCKET_ID,
             ID.unique(),
-            file,
-            [Permission.read(Role.any())]
+            values.inspirationImage
           );
           imageId = uploadedFile.$id;
-        } catch (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          // Keep existing image and show error
-          imageId = initialData?.inspirationImage;
-          if (uploadError instanceof Error) {
-            toast({
-              title: 'Error uploading image',
-              description: uploadError.message,
-              variant: 'destructive',
-            });
+          
+          // If updating and there's an old image, delete it
+          if (initialData?.inspirationImage) {
+            try {
+              await storage.deleteFile(STORAGE_BUCKET_ID, initialData.inspirationImage);
+            } catch (error) {
+              console.error('Error deleting old image:', error);
+            }
           }
+        } catch (error) {
+          imageId = initialData?.inspirationImage;
+        }
+      } else if (values.inspirationImage === null && initialData?.inspirationImage) {
+        // If image was cleared, delete the old image
+        try {
+          await storage.deleteFile(STORAGE_BUCKET_ID, initialData.inspirationImage);
+          imageId = undefined;
+        } catch (error) {
+          console.error('Error deleting old image:', error);
         }
       }
 
@@ -117,8 +108,8 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
         if (values.difficulty !== initialData.difficulty) updatedFields.difficulty = values.difficulty as Difficulty;
         if (values.status !== initialData.status) updatedFields.status = values.status as Status;
         
-        // Only include image if it changed
-        if (imageId !== initialData.inspirationImage) {
+        // Make sure to include inspirationImage in the updatedFields
+        if (imageId !== initialData?.inspirationImage) {
           updatedFields.inspirationImage = imageId;
         }
         
@@ -268,7 +259,7 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => onChange(e.target.files)}
+                  onChange={(e) => onChange(e.target.files?.[0] || null)}
                   {...field}
                 />
               </FormControl>

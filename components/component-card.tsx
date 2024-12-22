@@ -104,7 +104,7 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
 
   return (
     <>
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setShowDetails(true)}>
+      <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
                 {component.difficulty}
               </Badge>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -140,23 +140,23 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">{component.description}</p>
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{component.description}</p>
           
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
                 <AvatarFallback>{component.assignee[0]}</AvatarFallback>
               </Avatar>
-              <span className="text-sm">{component.assignee}</span>
+              <span className="text-sm truncate">{component.assignee}</span>
             </div>
 
             {imageUrl && !imageError && (
-              <div className="relative aspect-video w-full max-w-[200px] h-[150px] mx-auto overflow-hidden rounded-lg">
+              <div className="relative aspect-video w-full mx-auto overflow-hidden rounded-lg">
                 <Image
                   src={imageUrl}
                   alt={component.name}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                   onError={() => setImageError(true)}
                 />
                 <Button
@@ -230,7 +230,7 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
             </div>
 
             {imageUrl && !imageError && (
-              <div className="relative w-full max-w-[400px] h-[300px] mx-auto overflow-hidden rounded-lg">
+              <div className="relative w-full h-[350px] mx-auto overflow-hidden rounded-lg">
                 <Image
                   src={imageUrl}
                   alt={component.name}

@@ -10,6 +10,10 @@ import { ID, Permission, Role } from 'appwrite';
 import { useAuth } from '@/contexts/auth-context';
 import { Resource } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 
 interface ResourceFormProps {
   initialData?: Resource;
@@ -17,15 +21,26 @@ interface ResourceFormProps {
 }
 
 export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
-  const [name, setName] = useState(initialData?.name || '');
-  const [description, setDescription] = useState(initialData?.description || '');
-  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const formSchema = z.object({
+    name: z.string().min(2).max(50),
+    description: z.string(),
+    url: z.string().url().optional().or(z.literal('')),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      url: initialData?.url || '',
+    },
+  });
+
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
 
     try {
@@ -67,8 +82,9 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
         // For updates, only include fields that have actually changed
         const updatedFields: Partial<Resource> = {};
         
-        if (name !== initialData.name) updatedFields.name = name;
-        if (description !== initialData.description) updatedFields.description = description;
+        if (values.name !== initialData.name) updatedFields.name = values.name;
+        if (values.description !== initialData.description) updatedFields.description = values.description;
+        if (values.url !== initialData.url) updatedFields.url = values.url;
         
         // Handle file upload separately
         if (file) {
@@ -121,8 +137,9 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
         );
 
         const resourceData = {
-          name,
-          description,
+          name: values.name,
+          description: values.description,
+          url: values.url,
           fileId: uploadedFile.$id,
           fileName: file.name,
           fileSize: file.size.toString(),
@@ -144,8 +161,7 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
         }
       }
 
-      setName('');
-      setDescription('');
+      form.reset();
       setFile(null);
     } catch (error) {
       console.error('Error saving resource');
@@ -160,51 +176,77 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="name" className="text-sm font-medium">Name</label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-1"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+              </FormItem>
+            )}
           />
-        </div>
 
-        <div>
-          <label htmlFor="description" className="text-sm font-medium">Description</label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mt-1"
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea {...field} />
+                </FormControl>
+              </FormItem>
+            )}
           />
-        </div>
 
-        {!initialData && (
-          <div>
-            <label htmlFor="file" className="text-sm font-medium">File</label>
-            <Input
-              id="file"
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="mt-1"
-            />
-          </div>
-        )}
+          <FormField
+            control={form.control}
+            name="url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>URL (optional)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="url" 
+                    placeholder="https://example.com" 
+                    {...field} 
+                    value={field.value || ''}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>Save</>
+          {!initialData && (
+            <div>
+              <label htmlFor="file" className="text-sm font-medium">File</label>
+              <Input
+                id="file"
+                type="file"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="mt-1"
+              />
+            </div>
           )}
-        </Button>
-      </div>
-    </form>
+
+          <Button type="submit" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>Save</>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 } 
