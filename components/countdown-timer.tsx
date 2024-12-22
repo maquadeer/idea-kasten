@@ -54,9 +54,33 @@ export function CountdownTimer() {
           const timer = response.documents[0] as unknown as Timer;
           setTargetDate(timer.targetDate);
           setIsActive(timer.isActive);
+          
+          // Calculate initial time left
+          const now = new Date().getTime();
+          const target = new Date(timer.targetDate).getTime();
+          const difference = target - now;
+
+          if (difference > 0 && timer.isActive) {
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            setTimeLeft({ days, hours, minutes });
+          } else {
+            setTimeLeft(null);
+            setIsActive(false);
+            if (timer.isActive) {
+              // Update the timer to inactive if it's expired
+              updateTimer(timer.targetDate, false);
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching timer:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch timer data',
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
@@ -79,6 +103,10 @@ export function CountdownTimer() {
           setTimeLeft(null);
           setIsActive(false);
           updateTimer(targetDate, false);
+          toast({
+            title: 'Timer Completed',
+            description: 'The countdown has finished!',
+          });
           return;
         }
 
@@ -144,10 +172,20 @@ export function CountdownTimer() {
   };
 
   const handleStartTimer = async () => {
-    if (targetDate) {
-      setIsActive(true);
-      await updateTimer(targetDate, true);
+    const target = new Date(targetDate).getTime();
+    const now = new Date().getTime();
+    
+    if (target <= now) {
+      toast({
+        title: 'Invalid Date',
+        description: 'Please select a future date and time',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    setIsActive(true);
+    await updateTimer(targetDate, true);
   };
 
   const handleStopTimer = async () => {
@@ -156,13 +194,26 @@ export function CountdownTimer() {
     await updateTimer(targetDate, false);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     setEditDate(targetDate);
     setShowEditDialog(true);
   };
 
   const handleSaveEdit = async () => {
+    const target = new Date(editDate).getTime();
+    const now = new Date().getTime();
+    
+    if (target <= now) {
+      toast({
+        title: 'Invalid Date',
+        description: 'Please select a future date and time',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setTargetDate(editDate);
+    setIsActive(true);
     await updateTimer(editDate, true);
     setShowEditDialog(false);
   };
@@ -194,7 +245,7 @@ export function CountdownTimer() {
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Time Remaining:</span>
-              {timeLeft && (
+              {timeLeft ? (
                 <div className="flex items-center gap-2">
                   <TimeUnit value={timeLeft.days} label="d" />
                   <span className="text-muted-foreground">:</span>
@@ -202,6 +253,8 @@ export function CountdownTimer() {
                   <span className="text-muted-foreground">:</span>
                   <TimeUnit value={timeLeft.minutes} label="m" />
                 </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">Timer not active</span>
               )}
             </div>
           )}
@@ -220,7 +273,6 @@ export function CountdownTimer() {
               variant="ghost"
               size="icon"
               onClick={handleEdit}
-              disabled={!isActive}
               className="h-7 w-7"
             >
               <Pencil className="h-3.5 w-3.5" />
