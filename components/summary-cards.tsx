@@ -19,12 +19,6 @@ export function SummaryCards({ components }: SummaryCardsProps) {
         const completed = assigneeComponents.filter(c => c.status === 'done').length;
         const progress = total ? (completed / total) * 100 : 0;
 
-        const stats = {
-          easy: assigneeComponents.filter(c => c.difficulty === 'easy').length,
-          medium: assigneeComponents.filter(c => c.difficulty === 'medium').length,
-          hard: assigneeComponents.filter(c => c.difficulty === 'hard').length,
-        };
-
         return (
           <Card key={assignee}>
             <CardHeader>
@@ -38,18 +32,14 @@ export function SummaryCards({ components }: SummaryCardsProps) {
                 </div>
                 <Progress value={progress} />
               </div>
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="space-y-1">
-                  <p className="text-green-500">Easy</p>
-                  <p className="font-medium">{stats.easy}</p>
+              <div className="text-sm">
+                <div className="flex justify-between">
+                  <span>Total Components</span>
+                  <span className="font-medium">{total}</span>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-yellow-500">Medium</p>
-                  <p className="font-medium">{stats.medium}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-red-500">Hard</p>
-                  <p className="font-medium">{stats.hard}</p>
+                <div className="flex justify-between mt-1">
+                  <span>Completed</span>
+                  <span className="font-medium">{completed}</span>
                 </div>
               </div>
             </CardContent>
