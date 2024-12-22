@@ -24,12 +24,6 @@ export function ComponentDetailsDialog({ component }: ComponentDetailsDialogProp
   const [imageError, setImageError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const difficultyColors = {
-    easy: 'bg-green-500',
-    medium: 'bg-yellow-500',
-    hard: 'bg-red-500',
-  };
-
   useEffect(() => {
     if (component.inspirationImage && storage) {
       try {
@@ -80,9 +74,6 @@ export function ComponentDetailsDialog({ component }: ComponentDetailsDialogProp
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge variant="outline" className={difficultyColors[component.difficulty]}>
-                {component.difficulty}
-              </Badge>
               <Badge variant="outline" className="capitalize">
                 {component.status.replace('inprogress', 'In Progress')}
               </Badge>
