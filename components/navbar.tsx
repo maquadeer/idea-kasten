@@ -30,7 +30,7 @@ export function Navbar() {
       <div className="flex h-16 items-center px-4 container mx-auto">
         {/* Logo/Title */}
         <div className="font-bold text-lg">
-          IDEA-KASTEN
+          Celerbral Sync
         </div>
 
         {/* Right side content */}

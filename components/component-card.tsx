@@ -151,12 +151,12 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
             </div>
 
             {imageUrl && !imageError && (
-              <div className="relative aspect-video w-full max-w-[200px] h-[150px] mx-auto overflow-hidden rounded-lg">
+              <div className="relative aspect-video w-full h-[200px] mx-auto overflow-hidden rounded-lg">
                 <Image
                   src={imageUrl}
                   alt={component.name}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                   onError={() => setImageError(true)}
                 />
                 <Button
@@ -230,7 +230,7 @@ export function ComponentCard({ component, onUpdate }: ComponentCardProps) {
             </div>
 
             {imageUrl && !imageError && (
-              <div className="relative w-full max-w-[400px] h-[300px] mx-auto overflow-hidden rounded-lg">
+              <div className="relative w-full h-[300px] mx-auto overflow-hidden rounded-lg">
                 <Image
                   src={imageUrl}
                   alt={component.name}

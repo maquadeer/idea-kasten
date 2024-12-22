@@ -6,6 +6,15 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import MorphingText from '@/components/ui/morphing-text';
+
+const welcomeTexts = [
+  "Welcome🎉",
+  "to",
+  "Celerbral sync🏆",
+  "Let's get",
+  "started⚒️"
+];
 
 export default function AuthPage() {
   const router = useRouter();
@@ -51,10 +60,15 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-4">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-muted-foreground">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="space-y-6">
+          <div className="h-36">
+            <MorphingText 
+              texts={welcomeTexts} 
+              className="text-[32pt] lg:text-[40pt]"
+            />
+          </div>
+          <p className="text-muted-foreground text-center">
             {isSignUp ? 'Create an account' : 'Sign in to your account'}
           </p>
         </div>

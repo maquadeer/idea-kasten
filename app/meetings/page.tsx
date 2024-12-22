@@ -69,7 +69,7 @@ export default function MeetingsPage() {
               Add Meeting
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[calc(100%-2rem)] sm:w-[425px] p-4 sm:p-6">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Meeting</DialogTitle>
             </DialogHeader>
@@ -84,7 +84,7 @@ export default function MeetingsPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:w-[425px] p-4 sm:p-6">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {editingMeeting ? 'Edit Meeting' : 'Create New Meeting'}

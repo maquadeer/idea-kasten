@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Trash2, User, Clock } from 'lucide-react';
+import { FileText, Download, Trash2, User, Clock, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { databases, storage, MEETING_DATABASE_ID, RESOURCE_COLLECTION_ID, STORAGE_BUCKET_ID } from '@/lib/appwrite';
 import { Resource } from '@/lib/types';
@@ -34,6 +34,7 @@ export function ResourceCard({ resource, onUpdate, onDelete }: ResourceCardProps
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const handleDownload = async () => {
     try {
@@ -119,6 +120,21 @@ export function ResourceCard({ resource, onUpdate, onDelete }: ResourceCardProps
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
           
+          {resource.url && (
+            <div className="flex items-center gap-2 mb-4">
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              <a 
+                href={resource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-500 hover:text-blue-700 hover:underline truncate"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {resource.url}
+              </a>
+            </div>
+          )}
+
           <div className="space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -188,6 +204,35 @@ export function ResourceCard({ resource, onUpdate, onDelete }: ResourceCardProps
               if (onUpdate) await onUpdate();
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{resource.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <p className="text-muted-foreground">{resource.description}</p>
+            
+            {resource.url && (
+              <div className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" />
+                <a
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-700 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Visit Resource
+                </a>
+              </div>
+            )}
+
+            {/* ... rest of the dialog content ... */}
+          </div>
         </DialogContent>
       </Dialog>
     </>

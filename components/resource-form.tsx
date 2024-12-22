@@ -10,6 +10,8 @@ import { ID, Permission, Role } from 'appwrite';
 import { useAuth } from '@/contexts/auth-context';
 import { Resource } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { z } from 'zod';
+import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 
 interface ResourceFormProps {
   initialData?: Resource;
@@ -19,6 +21,7 @@ interface ResourceFormProps {
 export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
+  const [url, setUrl] = useState(initialData?.url || '');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -69,6 +72,7 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
         
         if (name !== initialData.name) updatedFields.name = name;
         if (description !== initialData.description) updatedFields.description = description;
+        if (url !== initialData.url) updatedFields.url = url;
         
         // Handle file upload separately
         if (file) {
@@ -123,6 +127,7 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
         const resourceData = {
           name,
           description,
+          url,
           fileId: uploadedFile.$id,
           fileName: file.name,
           fileSize: file.size.toString(),
@@ -146,6 +151,7 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
 
       setName('');
       setDescription('');
+      setUrl('');
       setFile(null);
     } catch (error) {
       console.error('Error saving resource');
@@ -178,6 +184,18 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="url" className="text-sm font-medium">URL (optional)</label>
+          <Input
+            id="url"
+            type="url"
+            placeholder="https://example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
             className="mt-1"
           />
         </div>

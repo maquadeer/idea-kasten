@@ -56,12 +56,13 @@ export function ComponentDetailsDialog({ component }: ComponentDetailsDialogProp
         </DialogHeader>
         <div className="space-y-6">
           {imageUrl && !imageError && (
-            <div className="relative aspect-video rounded-lg overflow-hidden">
+            <div className="relative w-full h-[400px] rounded-lg overflow-hidden">
               <Image
                 src={imageUrl}
                 alt="Inspiration"
                 fill
                 className="object-cover"
+                priority
                 onError={() => {
                   console.error('Failed to load image in dialog:', imageUrl);
                   setImageError(true);
