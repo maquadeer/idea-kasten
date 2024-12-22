@@ -1,5 +1,6 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,29 +10,28 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ComponentForm } from './component-form';
-import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Component } from '@/lib/types';
 
 interface CreateComponentButtonProps {
-  onSuccess?: () => Promise<void>;
+  onSuccess?: (component: Component) => void;
 }
 
 export function CreateComponentButton({ onSuccess }: CreateComponentButtonProps) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Component
+          <Plus className="h-4 w-4 mr-0 md:mr-2" />
+          <span className="hidden md:inline">Add Component</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Component</DialogTitle>
+          <DialogTitle>Create Component</DialogTitle>
         </DialogHeader>
-        <ComponentForm onSuccess={onSuccess} />
+        <div className="p-1">
+          <ComponentForm onSuccess={onSuccess} />
+        </div>
       </DialogContent>
     </Dialog>
   );

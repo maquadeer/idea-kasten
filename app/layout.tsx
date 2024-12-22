@@ -6,7 +6,7 @@ import { Navbar } from '@/components/navbar';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/contexts/auth-context';
 import { AuthGuard } from '@/components/auth-guard';
-
+import { FloatingDock } from '@/components/floating-dock';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -43,6 +43,7 @@ export default function RootLayout({
                 <Navbar />
                 <main className="flex-1">
                   {children}
+                  <FloatingDock />
                 </main>
                 <Toaster />
               </div>

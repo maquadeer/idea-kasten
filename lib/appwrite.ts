@@ -28,3 +28,4 @@ export const MEETING_COLLECTION_ID = config.appwrite.meetingCollectionId;
 export const TIMELINE_COLLECTION_ID = config.appwrite.timelineCollectionId;
 export const RESOURCE_COLLECTION_ID = config.appwrite.resourceCollectionId;
 export const STORAGE_BUCKET_ID = config.appwrite.bucketId;
+export const TIMER_COLLECTION_ID = config.appwrite.timerCollectionId;

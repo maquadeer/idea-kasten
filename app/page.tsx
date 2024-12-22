@@ -6,6 +6,7 @@ import { ComponentCard } from '@/components/component-card';
 import { databases, COMPONENT_DATABASE_ID, COMPONENT_COLLECTION_ID } from '@/lib/appwrite';
 import { Component } from '@/lib/types';
 import { Query } from 'appwrite';
+import { CountdownTimer } from '@/components/countdown-timer';
 
 export default function Home() {
   const [components, setComponents] = useState<Component[]>([]);
@@ -23,6 +24,8 @@ export default function Home() {
         COMPONENT_COLLECTION_ID,
         [Query.orderDesc('createdAt')]
       );
+
+      console.log('Fetched components:', response.documents);
 
       setComponents(response.documents as unknown as Component[]);
       setError(null);
@@ -72,6 +75,10 @@ export default function Home() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Components</h1>
         <CreateComponentButton onSuccess={fetchComponents} />
+      </div>
+
+      <div className="mb-8">
+        <CountdownTimer />
       </div>
 
       {components.length === 0 ? (

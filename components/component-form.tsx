@@ -17,14 +17,15 @@ import {
 import { client, databases, storage, COMPONENT_DATABASE_ID, COMPONENT_COLLECTION_ID, STORAGE_BUCKET_ID } from '@/lib/appwrite';
 import { ID, Permission, Role } from 'appwrite';
 import { useToast } from '@/hooks/use-toast';
-import { Component, Difficulty, Status } from '@/lib/types';
+import { Component, Status } from '@/lib/types';
 import { useState } from 'react';
+import { Loader2, X } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
   description: z.string(),
   assignee: z.string().min(2),
-  difficulty: z.enum(['easy', 'medium', 'hard'] as const),
+  tags: z.array(z.string()),
   status: z.enum(['todo', 'inprogress', 'done'] as const),
   inspirationImage: z.any().optional(),
 });
@@ -42,21 +43,45 @@ function generateShortId(): string {
 export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [tagInput, setTagInput] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      name: '',
-      description: '',
-      assignee: '',
-      difficulty: 'medium',
-      status: 'todo',
+    defaultValues: {
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      assignee: initialData?.assignee || '',
+      tags: initialData?.tags || [],
+      status: initialData?.status || 'todo',
+      inspirationImage: undefined,
     },
   });
 
+  const tags = form.watch('tags') || [];
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const trimmedInput = tagInput.trim();
+      
+      if (trimmedInput) {
+        const currentTags = Array.isArray(form.getValues('tags')) ? form.getValues('tags') : [];
+        if (!currentTags.includes(trimmedInput)) {
+          form.setValue('tags', [...currentTags, trimmedInput]);
+        }
+        setTagInput('');
+      }
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const currentTags = Array.isArray(form.getValues('tags')) ? form.getValues('tags') : [];
+    form.setValue('tags', currentTags.filter(tag => tag !== tagToRemove));
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      if (!client || !databases || !storage) {
+      if (!databases || !storage) {
         console.error('Services not initialized');
         return;
       }
@@ -64,13 +89,14 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
       setIsLoading(true);
       let imageId: string | undefined = initialData?.inspirationImage;
 
-      // Handle image upload separately
+      // Handle image upload
       if (values.inspirationImage instanceof File) {
         try {
           const uploadedFile = await storage.createFile(
             STORAGE_BUCKET_ID,
             ID.unique(),
-            values.inspirationImage
+            values.inspirationImage,
+            [Permission.read(Role.any())]
           );
           imageId = uploadedFile.$id;
           
@@ -83,7 +109,12 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
             }
           }
         } catch (error) {
-          imageId = initialData?.inspirationImage;
+          console.error('Error uploading image:', error);
+          toast({
+            title: 'Warning',
+            description: 'Failed to upload image. Other changes will still be saved.',
+            variant: 'destructive',
+          });
         }
       } else if (values.inspirationImage === null && initialData?.inspirationImage) {
         // If image was cleared, delete the old image
@@ -95,67 +126,60 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
         }
       }
 
-      let updatedComponent: Component | null = null;
-
+      const formattedTags = Array.isArray(values.tags) ? values.tags : [];
+      
       if (initialData?.$id) {
-        // For updates, only include fields that have actually changed
-        const updatedFields: Partial<Component> = {};
-        
-        // Compare each field with initial data
-        if (values.name !== initialData.name) updatedFields.name = values.name;
-        if (values.description !== initialData.description) updatedFields.description = values.description;
-        if (values.assignee !== initialData.assignee) updatedFields.assignee = values.assignee;
-        if (values.difficulty !== initialData.difficulty) updatedFields.difficulty = values.difficulty as Difficulty;
-        if (values.status !== initialData.status) updatedFields.status = values.status as Status;
-        
-        // Make sure to include inspirationImage in the updatedFields
-        if (imageId !== initialData?.inspirationImage) {
-          updatedFields.inspirationImage = imageId;
-        }
-        
-        // Only update if there are changes
-        if (Object.keys(updatedFields).length > 0) {
-          updatedFields.updatedAt = new Date();
-          
-          updatedComponent = await databases.updateDocument(
-            COMPONENT_DATABASE_ID,
-            COMPONENT_COLLECTION_ID,
-            initialData.$id,
-            updatedFields
-          ) as unknown as Component;
-
-          toast({ 
-            title: 'Component updated',
-            description: Object.keys(updatedFields).join(', ') + ' updated successfully'
-          });
-        }
-      } else {
-        // For new components, include all fields
-        const newComponent: Component = {
+        // Update existing component
+        const updatedFields = {
           name: values.name,
           description: values.description,
           assignee: values.assignee,
-          difficulty: values.difficulty as Difficulty,
-          status: values.status as Status,
+          tags: formattedTags,
+          status: values.status,
+          inspirationImage: imageId,
+          updatedAt: new Date(),
+        };
+
+        const updatedComponent = await databases.updateDocument(
+          COMPONENT_DATABASE_ID,
+          COMPONENT_COLLECTION_ID,
+          initialData.$id,
+          updatedFields
+        );
+
+        toast({ title: 'Component updated' });
+        if (onSuccess) {
+          onSuccess(updatedComponent as unknown as Component);
+        }
+      } else {
+        // Create new component
+        const newComponent = {
+          name: values.name,
+          description: values.description,
+          assignee: values.assignee,
+          tags: formattedTags,
+          status: values.status,
           inspirationImage: imageId,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
 
-        updatedComponent = await databases.createDocument(
+        const createdComponent = await databases.createDocument(
           COMPONENT_DATABASE_ID,
           COMPONENT_COLLECTION_ID,
           ID.unique(),
           newComponent,
           [Permission.read(Role.any()), Permission.update(Role.any())]
-        ) as unknown as Component;
+        );
+
         toast({ title: 'Component created' });
+        if (onSuccess) {
+          onSuccess(createdComponent as unknown as Component);
+        }
       }
 
       form.reset();
-      if (onSuccess && updatedComponent) {
-        onSuccess(updatedComponent);
-      }
+      setTagInput('');
     } catch (error) {
       console.error('Error saving component:', error);
       toast({
@@ -170,109 +194,146 @@ export function ComponentForm({ initialData, onSuccess }: ComponentFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Component name" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Component description" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="assignee"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Assignee</FormLabel>
-              <FormControl>
-                <Input placeholder="Assignee name" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="difficulty"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Difficulty</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="col-span-2">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="col-span-2">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} className="min-h-[100px]" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="assignee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Assignee</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
+                  <Input {...field} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="tags"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tags</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Type and press Enter to add tags"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleAddTag}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="todo">Todo</SelectItem>
-                  <SelectItem value="inprogress">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="inspirationImage"
-          render={({ field: { value, onChange, ...field } }) => (
-            <FormItem>
-              <FormLabel>Inspiration Image (optional)</FormLabel>
-              <FormControl>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onChange(e.target.files?.[0] || null)}
-                  {...field}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            'Creating...'
-          ) : (
-            initialData ? 'Update' : 'Create'
-          )} Component
-        </Button>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="todo">To Do</SelectItem>
+                    <SelectItem value="inprogress">In Progress</SelectItem>
+                    <SelectItem value="done">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+
+          <div className="col-span-2">
+            <FormField
+              control={form.control}
+              name="inspirationImage"
+              render={({ field: { value, onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Inspiration Image</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        onChange(file);
+                      }}
+                      {...field}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );

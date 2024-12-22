@@ -1,4 +1,3 @@
-export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Status = 'todo' | 'inprogress' | 'done';
 export type TimelineStatus = 'completed' | 'required';
 
@@ -7,7 +6,7 @@ export interface Component {
   name: string;
   description: string;
   assignee: string;
-  difficulty: Difficulty;
+  tags: string[];
   status: Status;
   inspirationImage?: string;
   createdAt: Date;
@@ -45,6 +44,14 @@ export interface Resource {
   fileName: string;
   fileSize: string;
   uploadedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Timer {
+  $id?: string;
+  targetDate: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

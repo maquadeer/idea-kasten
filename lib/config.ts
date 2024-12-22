@@ -8,6 +8,7 @@ export const config = {
     meetingCollectionId: process.env.NEXT_PUBLIC_APPWRITE_MEETING_COLLECTION_ID || '',
     timelineCollectionId: process.env.NEXT_PUBLIC_APPWRITE_TIMELINE_COLLECTION_ID || '',
     resourceCollectionId: process.env.NEXT_PUBLIC_APPWRITE_RESOURCE_COLLECTION_ID || '',
+    timerCollectionId: process.env.NEXT_PUBLIC_APPWRITE_TIMER_COLLECTION_ID!,
   },
 } as const;
 
@@ -20,6 +21,7 @@ export const isConfigValid = () => {
     config.appwrite.meetingCollectionId,
     config.appwrite.timelineCollectionId,
     config.appwrite.resourceCollectionId,
+    config.appwrite.timerCollectionId,
   ];
 
   return requiredVars.every(Boolean);
