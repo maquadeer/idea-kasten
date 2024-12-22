@@ -10,7 +10,7 @@ import { AuthGuard } from '@/components/auth-guard';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'IDEA KASTEN',
+  title: 'Cerebral Sync',
   description: 'A place where you can drop ideas of project components and divide work and organise meetings and resources.',
   icons: {
     icon: '/favicon.ico',

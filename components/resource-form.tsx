@@ -20,16 +20,17 @@ interface ResourceFormProps {
   onSuccess?: (resource: Resource) => void;
 }
 
+const formSchema = z.object({
+  name: z.string().min(2).max(50),
+  description: z.string(),
+  url: z.string().url().optional().or(z.literal('')),
+});
+
 export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-
-  const formSchema = z.object({
-    name: z.string().min(2).max(50),
-    description: z.string(),
-    url: z.string().url().optional().or(z.literal('')),
-  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,17 +54,17 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
       let fileSize = initialData?.fileSize || '';
 
       // Handle file upload separately
-      if (file) {
+      if (selectedFile) {
         try {
           const uploadedFile = await storage.createFile(
             STORAGE_BUCKET_ID,
             ID.unique(),
-            file,
+            selectedFile,
             [Permission.read(Role.any())]
           );
           fileId = uploadedFile.$id;
-          fileName = file.name;
-          fileSize = file.size.toString();
+          fileName = selectedFile.name;
+          fileSize = selectedFile.size.toString();
         } catch (error) {
           console.error('Error uploading file');
           toast({
@@ -71,7 +72,6 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
             description: 'Failed to upload new file. Other changes will still be saved.',
             variant: 'destructive',
           });
-          // Keep existing file details
           fileId = initialData?.fileId || null;
           fileName = initialData?.fileName || '';
           fileSize = initialData?.fileSize || '';
@@ -79,31 +79,19 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
       }
 
       if (initialData?.$id) {
-        // For updates, only include fields that have actually changed
+        // Update existing resource
         const updatedFields: Partial<Resource> = {};
         
         if (values.name !== initialData.name) updatedFields.name = values.name;
         if (values.description !== initialData.description) updatedFields.description = values.description;
         if (values.url !== initialData.url) updatedFields.url = values.url;
         
-        // Handle file upload separately
-        if (file) {
-          try {
-            const uploadedFile = await storage.createFile(
-              STORAGE_BUCKET_ID,
-              ID.unique(),
-              file,
-              [Permission.read(Role.any())]
-            );
-            updatedFields.fileId = uploadedFile.$id;
-            updatedFields.fileName = file.name;
-            updatedFields.fileSize = file.size.toString();
-          } catch (error) {
-            console.error('Error uploading file:', error);
-          }
+        if (selectedFile) {
+          updatedFields.fileId = fileId!;
+          updatedFields.fileName = fileName;
+          updatedFields.fileSize = fileSize;
         }
 
-        // Only update if there are changes
         if (Object.keys(updatedFields).length > 0) {
           updatedFields.updatedAt = new Date().toISOString();
           const updatedDoc = await databases.updateDocument(
@@ -118,8 +106,8 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
           }
         }
       } else {
-        // For new resources
-        if (!file) {
+        // Create new resource
+        if (!selectedFile) {
           toast({
             title: 'Error',
             description: 'Please select a file to upload',
@@ -128,21 +116,13 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
           return;
         }
 
-        // Upload file first
-        const uploadedFile = await storage.createFile(
-          STORAGE_BUCKET_ID,
-          ID.unique(),
-          file,
-          [Permission.read(Role.any())]
-        );
-
         const resourceData = {
           name: values.name,
           description: values.description,
           url: values.url,
-          fileId: uploadedFile.$id,
-          fileName: file.name,
-          fileSize: file.size.toString(),
+          fileId: fileId!,
+          fileName: fileName,
+          fileSize: fileSize,
           uploadedBy: user?.name || 'Unknown',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -162,9 +142,9 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
       }
 
       form.reset();
-      setFile(null);
+      setSelectedFile(null);
     } catch (error) {
-      console.error('Error saving resource');
+      console.error('Error saving resource:', error);
       toast({
         title: 'Error',
         description: 'Failed to save resource. Please try again.',
@@ -229,7 +209,7 @@ export function ResourceForm({ initialData, onSuccess }: ResourceFormProps) {
               <Input
                 id="file"
                 type="file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 className="mt-1"
               />
             </div>
